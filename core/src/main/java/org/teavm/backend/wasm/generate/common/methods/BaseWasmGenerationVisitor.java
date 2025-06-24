@@ -871,6 +871,7 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
                     : context.functions().forInstanceMethod(reference);
 
             var call = new WasmCall(function);
+            call.setSuspensionPoint(isAsyncSplit(reference));
             var arguments = expr.getArguments();
             for (int i = 0, argumentsSize = arguments.size(); i < argumentsSize; i++) {
                 var argument = arguments.get(i);
@@ -899,6 +900,7 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
 
             var function = context.functions().forInstanceMethod(expr.getMethod());
             var call = new WasmCall(function);
+            call.setSuspensionPoint(isAsyncSplit(expr.getMethod()));
             call.getArguments().add(new WasmGetLocal(tmp));
             var arguments = expr.getArguments();
             for (int i = 0; i < arguments.size(); i++) {
@@ -1554,6 +1556,10 @@ public abstract class BaseWasmGenerationVisitor implements StatementVisitor, Exp
         accept(expr.getArray());
         result = unwrapArray(result);
         result.setLocation(expr.getLocation());
+    }
+
+    protected boolean isAsyncSplit(MethodReference methodRef) {
+        return false;
     }
 
     protected abstract class CallSiteIdentifier {

@@ -17,6 +17,7 @@ package org.teavm.backend.wasm.generate.gc.methods;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.teavm.ast.ArrayFromDataExpr;
@@ -115,14 +116,17 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
     private PreciseTypeInference types;
     private WasmGCVirtualCallGenerator virtualCallGenerator;
     private boolean compactMode;
+    private Set<MethodReference> asyncSplitMethods;
 
     public WasmGCGenerationVisitor(WasmGCGenerationContext context, MethodReference currentMethod,
-            WasmFunction function, int firstVariable, boolean async, PreciseTypeInference types) {
+            WasmFunction function, int firstVariable, boolean async, PreciseTypeInference types,
+            Set<MethodReference> asyncSplitMethods) {
         super(context, currentMethod, function, firstVariable, async);
         this.context = context;
         generationUtil = new WasmGCGenerationUtil(context.classInfoProvider());
         virtualCallGenerator = new WasmGCVirtualCallGenerator(context.virtualTables(), context.classInfoProvider());
         this.types = types;
+        this.asyncSplitMethods = asyncSplitMethods;
     }
 
     public void setCompactMode(boolean compactMode) {
@@ -428,7 +432,8 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
     @Override
     protected WasmExpression generateVirtualCall(WasmLocal instance, MethodReference method,
             List<WasmExpression> arguments) {
-        return virtualCallGenerator.generate(method, instance, arguments.subList(1, arguments.size()));
+        return virtualCallGenerator.generate(method, isAsyncSplit(method), instance,
+                arguments.subList(1, arguments.size()));
     }
 
     @Override
@@ -881,6 +886,11 @@ public class WasmGCGenerationVisitor extends BaseWasmGenerationVisitor {
             }
         }
         return super.condBlockType(thenType, elseType, conditional);
+    }
+
+    @Override
+    protected boolean isAsyncSplit(MethodReference methodRef) {
+        return asyncSplitMethods.contains(methodRef);
     }
 
     private class SimpleCallSite extends CallSiteIdentifier {

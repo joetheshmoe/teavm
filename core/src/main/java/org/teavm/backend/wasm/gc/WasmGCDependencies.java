@@ -24,8 +24,11 @@ import org.teavm.dependency.DependencyAgent;
 import org.teavm.dependency.DependencyAnalyzer;
 import org.teavm.dependency.MethodDependency;
 import org.teavm.interop.Address;
+import org.teavm.model.MethodReader;
 import org.teavm.model.MethodReference;
 import org.teavm.model.ValueType;
+import org.teavm.runtime.EventQueue;
+import org.teavm.runtime.Fiber;
 import org.teavm.runtime.heap.Heap;
 
 public class WasmGCDependencies {
@@ -43,6 +46,7 @@ public class WasmGCDependencies {
         contributeInitializerUtils();
         contributeString();
         contributeBuffers();
+        contributeFiber();
         analyzer.addDependencyListener(new WasmGCReferenceQueueDependency());
         analyzer.addDependencyListener(new WasmGCResourceDependency());
         analyzer.addDependencyListener(new SystemArrayCopyDependencySupport());
@@ -139,6 +143,23 @@ public class WasmGCDependencies {
     private void contributeBuffers() {
         analyzer.linkMethod(new MethodReference(Heap.class, "init", Address.class, int.class, int.class,
                 void.class)).use();
+    }
+
+    private void contributeFiber() {
+        analyzer.linkMethod(new MethodReference(Fiber.class, "isResuming", boolean.class)).use();
+        analyzer.linkMethod(new MethodReference(Fiber.class, "isSuspending", boolean.class)).use();
+        analyzer.linkMethod(new MethodReference(Fiber.class, "current", Fiber.class)).use();
+        analyzer.linkMethod(new MethodReference(EventQueue.class, "processSingle", void.class)).use();
+        analyzer.linkMethod(new MethodReference(EventQueue.class, "isStopped", boolean.class)).use();
+        analyzer.linkMethod(new MethodReference(Thread.class, "setCurrentThread", Thread.class,
+                void.class)).use();
+
+        var fiberClass = analyzer.getClassSource().get(Fiber.class.getName());
+        for (MethodReader method : fiberClass.getMethods()) {
+            if (method.getName().startsWith("pop") || method.getName().equals("push")) {
+                analyzer.linkMethod(method.getReference()).use();
+            }
+        }
     }
 
     private void handleReferences() {

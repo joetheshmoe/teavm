@@ -262,7 +262,7 @@ public class WasmGCTarget implements TeaVMTarget, TeaVMWasmGCHost {
 
     @Override
     public boolean isAsyncSupported() {
-        return false;
+        return true;
     }
 
     @Override

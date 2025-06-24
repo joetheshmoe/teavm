@@ -17,13 +17,10 @@ package org.teavm.runtime;
 
 import java.util.Arrays;
 import org.teavm.interop.AsyncCallback;
-import org.teavm.interop.Platforms;
 import org.teavm.interop.StaticInit;
 import org.teavm.interop.Unmanaged;
-import org.teavm.interop.UnsupportedOn;
 
 @StaticInit
-@UnsupportedOn(Platforms.WEBASSEMBLY_GC)
 public class Fiber {
     public static final int STATE_RUNNING = 0;
     public static final int STATE_SUSPENDING = 1;

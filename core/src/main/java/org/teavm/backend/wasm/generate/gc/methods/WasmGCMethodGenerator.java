@@ -52,6 +52,7 @@ import org.teavm.backend.wasm.model.expression.WasmFunctionReference;
 import org.teavm.backend.wasm.model.expression.WasmGetGlobal;
 import org.teavm.backend.wasm.model.expression.WasmSetGlobal;
 import org.teavm.backend.wasm.model.expression.WasmStructSet;
+import org.teavm.backend.wasm.transformation.gc.CoroutineTransformation;
 import org.teavm.dependency.DependencyInfo;
 import org.teavm.diagnostics.Diagnostics;
 import org.teavm.interop.Import;
@@ -105,6 +106,9 @@ public class WasmGCMethodGenerator implements BaseWasmFunctionRepository {
     private Consumer<WasmGCInitializerContributor> initializerContributors;
     private boolean compactMode;
     private DependencyInfo dependency;
+    private Set<MethodReference> asyncMethods = Set.of();
+    private Set<MethodReference> asyncSplitMethods = Set.of();
+    private CoroutineTransformation coroutineTransformation;
 
     public WasmGCMethodGenerator(
             WasmModule module,
@@ -140,6 +144,14 @@ public class WasmGCMethodGenerator implements BaseWasmFunctionRepository {
         this.strict = strict;
         this.entryPoint = entryPoint;
         this.initializerContributors = initializerContributors;
+    }
+
+    public void setAsyncMethods(Set<MethodReference> asyncMethods) {
+        this.asyncMethods = asyncMethods;
+    }
+
+    public void setAsyncSplitMethods(Set<MethodReference> asyncSplitMethods) {
+        this.asyncSplitMethods = asyncSplitMethods;
     }
 
     public void setCompactMode(boolean compactMode) {
@@ -315,6 +327,7 @@ public class WasmGCMethodGenerator implements BaseWasmFunctionRepository {
 
         var nonNullableVars = new boolean[ast.getVariables().size()];
         var preciseTypes = new PreciseValueType[ast.getVariables().size()];
+        var isSuspend = asyncMethods.contains(method.getReference());
         for (var i = firstVar; i < ast.getVariables().size(); ++i) {
             var representative = method.getProgram().variableAt(variableRepresentatives[i]);
             var inferredType = typeInference.typeOf(representative);
@@ -322,7 +335,7 @@ public class WasmGCMethodGenerator implements BaseWasmFunctionRepository {
                 inferredType = new PreciseValueType(ValueType.object("java.lang.Object"), false);
             }
             preciseTypes[i] = inferredType;
-            nonNullableVars[i] = inferredType.isArrayUnwrap;
+            nonNullableVars[i] = !isSuspend && inferredType.isArrayUnwrap;
         }
         calculateNonNullableVars(nonNullableVars, ast);
 
@@ -344,9 +357,15 @@ public class WasmGCMethodGenerator implements BaseWasmFunctionRepository {
 
         addInitializerErase(method, function);
         var visitor = new WasmGCGenerationVisitor(getGenerationContext(), method.getReference(),
-                function, firstVar, false, typeInference);
+                function, firstVar, false, typeInference, asyncSplitMethods);
         visitor.setCompactMode(methodCompact);
         visitor.generate(ast.getBody(), function.getBody());
+        if (asyncMethods.contains(method.getReference())) {
+            if (coroutineTransformation == null) {
+                coroutineTransformation = new CoroutineTransformation(functionTypes, this, classInfoProvider);
+            }
+            coroutineTransformation.transform(function);
+        }
     }
 
     private void eliminateMultipleNullConstantUsages(Program program) {
