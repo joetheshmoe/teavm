@@ -18,14 +18,14 @@ package org.teavm.backend.wasm.model;
 import java.util.Arrays;
 
 public class WasmMemorySegment {
-    private int offset;
+    private long offset;
     private byte[] data = new byte[0];
 
-    public int getOffset() {
+    public long getOffset() {
         return offset;
     }
 
-    public void setOffset(int offset) {
+    public void setOffset(long offset) {
         this.offset = offset;
     }
 

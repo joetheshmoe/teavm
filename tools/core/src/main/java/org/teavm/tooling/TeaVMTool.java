@@ -118,6 +118,7 @@ public class TeaVMTool {
     private WasmDebugInfoLocation wasmDebugInfoLocation = WasmDebugInfoLocation.EXTERNAL;
     private WasmDebugInfoLevel wasmDebugInfoLevel = WasmDebugInfoLevel.DEOBFUSCATION;
     private boolean wasmExceptionsUsed;
+    private boolean wasm64;
     private CTarget cTarget;
     private Set<File> generatedFiles = new HashSet<>();
     private int minHeapSize = 4 * (1 << 20);
@@ -318,6 +319,10 @@ public class TeaVMTool {
         this.wasmDebugInfoLevel = wasmDebugInfoLevel;
     }
 
+    public void setWasm64(boolean wasm64) {
+        this.wasm64 = wasm64;
+    }
+
     public void setHeapDump(boolean heapDump) {
         this.heapDump = heapDump;
     }
@@ -402,6 +407,7 @@ public class TeaVMTool {
         webAssemblyTarget.setCEmitted(debugInformationGenerated);
         webAssemblyTarget.setWastEmitted(debugInformationGenerated);
         webAssemblyTarget.setVersion(wasmVersion);
+        webAssemblyTarget.setWasm64(wasm64);
         webAssemblyTarget.setMinHeapSize(minHeapSize);
         webAssemblyTarget.setMaxHeapSize(maxHeapSize);
         webAssemblyTarget.setObfuscated(obfuscated);

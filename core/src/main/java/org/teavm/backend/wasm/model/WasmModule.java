@@ -28,8 +28,8 @@ import org.teavm.common.Graph;
 import org.teavm.common.GraphUtils;
 
 public class WasmModule {
-    private int minMemorySize;
-    private int maxMemorySize;
+    private long minMemorySize;
+    private long maxMemorySize;
     private List<WasmMemorySegment> segments = new ArrayList<>();
     private List<WasmFunction> functionTable = new ArrayList<>();
     private WasmFunction startFunction;
@@ -76,19 +76,19 @@ public class WasmModule {
         return segments;
     }
 
-    public int getMinMemorySize() {
+    public long getMinMemorySize() {
         return minMemorySize;
     }
 
-    public void setMinMemorySize(int minMemorySize) {
+    public void setMinMemorySize(long minMemorySize) {
         this.minMemorySize = minMemorySize;
     }
 
-    public int getMaxMemorySize() {
+    public long getMaxMemorySize() {
         return maxMemorySize;
     }
 
-    public void setMaxMemorySize(int maxMemorySize) {
+    public void setMaxMemorySize(long maxMemorySize) {
         this.maxMemorySize = maxMemorySize;
     }
 

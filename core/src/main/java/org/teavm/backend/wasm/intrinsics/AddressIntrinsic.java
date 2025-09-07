@@ -29,6 +29,7 @@ import org.teavm.backend.wasm.model.expression.WasmExpression;
 import org.teavm.backend.wasm.model.expression.WasmFill;
 import org.teavm.backend.wasm.model.expression.WasmInt32Constant;
 import org.teavm.backend.wasm.model.expression.WasmInt32Subtype;
+import org.teavm.backend.wasm.model.expression.WasmInt64Constant;
 import org.teavm.backend.wasm.model.expression.WasmInt64Subtype;
 import org.teavm.backend.wasm.model.expression.WasmIntBinary;
 import org.teavm.backend.wasm.model.expression.WasmIntBinaryOperation;
@@ -48,9 +49,15 @@ import org.teavm.runtime.RuntimeArray;
 
 public class AddressIntrinsic implements WasmIntrinsic {
     private WasmClassGenerator classGenerator;
+    private boolean wasm64;
 
     public AddressIntrinsic(WasmClassGenerator classGenerator) {
+        this(classGenerator, false);
+    }
+
+    public AddressIntrinsic(WasmClassGenerator classGenerator, boolean wasm64) {
         this.classGenerator = classGenerator;
+        this.wasm64 = wasm64;
     }
 
     @Override
@@ -66,23 +73,36 @@ public class AddressIntrinsic implements WasmIntrinsic {
                 return manager.generate(invocation.getArguments().get(0));
             case "toLong": {
                 WasmExpression value = manager.generate(invocation.getArguments().get(0));
-                return new WasmConversion(WasmNumType.INT32, WasmNumType.INT64, false, value);
+                if (wasm64) {
+                    return value;
+                } else {
+                    return new WasmConversion(WasmNumType.INT32, WasmNumType.INT64, false, value);
+                }
             }
             case "fromInt":
             case "ofObject":
                 return manager.generate(invocation.getArguments().get(0));
             case "fromLong": {
                 WasmExpression value = manager.generate(invocation.getArguments().get(0));
-                return new WasmConversion(WasmNumType.INT64, WasmNumType.INT32, false, value);
+                if (wasm64) {
+                    return value;
+                } else {
+                    return new WasmConversion(WasmNumType.INT64, WasmNumType.INT32, false, value);
+                }
             }
             case "add": {
                 WasmExpression base = manager.generate(invocation.getArguments().get(0));
+                WasmIntType intType = wasm64 ? WasmIntType.INT64 : WasmIntType.INT32;
                 if (invocation.getMethod().parameterCount() == 1) {
                     WasmExpression offset = manager.generate(invocation.getArguments().get(1));
                     if (invocation.getMethod().parameterType(0) == ValueType.LONG) {
-                        offset = new WasmConversion(WasmNumType.INT64, WasmNumType.INT32, false, offset);
+                        if (!wasm64) {
+                            offset = new WasmConversion(WasmNumType.INT64, WasmNumType.INT32, false, offset);
+                        }
+                    } else if (wasm64) {
+                        offset = new WasmConversion(WasmNumType.INT32, WasmNumType.INT64, false, offset);
                     }
-                    return new WasmIntBinary(WasmIntType.INT32, WasmIntBinaryOperation.ADD, base, offset);
+                    return new WasmIntBinary(intType, WasmIntBinaryOperation.ADD, base, offset);
                 } else {
                     WasmExpression offset = manager.generate(invocation.getArguments().get(2));
                     Object type = ((ConstantExpr) invocation.getArguments().get(1)).getValue();
@@ -91,9 +111,15 @@ public class AddressIntrinsic implements WasmIntrinsic {
                     int alignment = classGenerator.getClassAlignment(className);
                     size = WasmClassGenerator.align(size, alignment);
 
-                    offset = new WasmIntBinary(WasmIntType.INT32, WasmIntBinaryOperation.MUL, offset,
-                            new WasmInt32Constant(size));
-                    return new WasmIntBinary(WasmIntType.INT32, WasmIntBinaryOperation.ADD, base, offset);
+                    if (wasm64) {
+                        offset = new WasmConversion(WasmNumType.INT32, WasmNumType.INT64, false, offset);
+                        WasmExpression sizeExpr = new WasmInt64Constant(size);
+                        offset = new WasmIntBinary(WasmIntType.INT64, WasmIntBinaryOperation.MUL, offset, sizeExpr);
+                    } else {
+                        offset = new WasmIntBinary(WasmIntType.INT32, WasmIntBinaryOperation.MUL, offset,
+                                new WasmInt32Constant(size));
+                    }
+                    return new WasmIntBinary(intType, WasmIntBinaryOperation.ADD, base, offset);
                 }
             }
             case "getByte":

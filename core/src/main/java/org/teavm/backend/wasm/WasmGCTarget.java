@@ -435,14 +435,14 @@ public class WasmGCTarget implements TeaVMTarget, TeaVMWasmGCHost {
 
     private void adjustModuleMemory(WasmModule module, WasmGCModuleGenerator moduleGenerator,
             boolean buffersHeap) {
-        var memorySize = 0;
+        var memorySize = 0L;
         for (var segment : module.getSegments()) {
             memorySize = Math.max(memorySize, segment.getOffset() + segment.getLength());
         }
         var maxMemorySize = memorySize;
         if (buffersHeap) {
             memorySize = ((memorySize - 1) / 256 + 1) * 256;
-            moduleGenerator.initBuffersHeap(memorySize, bufferHeapMinSize, bufferHeapMaxSize);
+            moduleGenerator.initBuffersHeap((int) memorySize, bufferHeapMinSize, bufferHeapMaxSize);
             maxMemorySize = memorySize + bufferHeapMaxSize;
             memorySize += bufferHeapMinSize;
         }
@@ -487,6 +487,7 @@ public class WasmGCTarget implements TeaVMTarget, TeaVMWasmGCHost {
         }
         var binaryRenderer = new WasmBinaryRenderer(binaryWriter, WasmBinaryVersion.V_0x1, obfuscated,
                 null, null, debugLines, null, WasmBinaryStatsCollector.EMPTY);
+        // TODO: Add wasm64 support for WasmGCTarget
         optimizeIndexes(module);
         module.prepareForRendering();
         binaryRenderer.render(module, customSections(debugInfoBuilder, module));

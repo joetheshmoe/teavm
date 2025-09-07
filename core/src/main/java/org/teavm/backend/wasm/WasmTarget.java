@@ -198,6 +198,7 @@ public class WasmTarget implements TeaVMTarget, TeaVMWasmHost {
     private ShadowStackTransformer shadowStackTransformer;
     private WriteBarrierInsertion writeBarrierInsertion;
     private WasmBinaryVersion version = WasmBinaryVersion.V_0x1;
+    private boolean wasm64;
     private List<WasmIntrinsicFactory> additionalIntrinsics = new ArrayList<>();
     private NullCheckInsertion nullCheckInsertion;
     private BoundCheckInsertion boundCheckInsertion = new BoundCheckInsertion();
@@ -296,6 +297,11 @@ public class WasmTarget implements TeaVMTarget, TeaVMWasmHost {
 
     public void setVersion(WasmBinaryVersion version) {
         this.version = version;
+    }
+
+    public void setWasm64(boolean wasm64) {
+        this.wasm64 = wasm64;
+        this.version = wasm64 ? WasmBinaryVersion.V_0x2 : WasmBinaryVersion.V_0x1;
     }
 
     public void setMinHeapSize(int minHeapSize) {
@@ -513,7 +519,7 @@ public class WasmTarget implements TeaVMTarget, TeaVMWasmHost {
 
         var initFunction = new WasmFunction(functionTypes.of(null));
 
-        context.addIntrinsic(new AddressIntrinsic(classGenerator));
+        context.addIntrinsic(new AddressIntrinsic(classGenerator, wasm64));
         context.addIntrinsic(new StructureIntrinsic(classes, classGenerator));
         context.addIntrinsic(new FunctionIntrinsic(classGenerator));
         context.addIntrinsic(new FunctionClassIntrinsic());

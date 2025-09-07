@@ -65,7 +65,7 @@ public class WasmGCResourcesGenerator implements WasmGCCustomGenerator {
         }
         segment.setData(resources.toByteArray());
         module.getSegments().add(segment);
-        baseGlobal.setInitialValue(new WasmInt32Constant(segment.getOffset()));
+        baseGlobal.setInitialValue(new WasmInt32Constant((int) segment.getOffset()));
     }
 
     @Override
