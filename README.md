@@ -1,4 +1,4 @@
-HEAVILY expiramental fork for wasm64 support in TeaVM. dont expect this to be merged.
+HEAVILY expiramental fork for wasm64 support in TeaVM. dont expect this to be merged. test build does compile. yet to be tested in browsers with real world projects.
 
 
 # TeaVM
